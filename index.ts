@@ -2,7 +2,7 @@ const INVALID_QUERY_OBJECT =
   'Invalid queryObject. Expected object, array of entries, or URLSearchParams.';
 
 /**
- * Query parameter sources accepted by {@link toUrl}.
+ * Query parameter sources accepted by {@link buildUrl}.
  */
 export type QueryObject =
   | Record<string, unknown>
@@ -26,7 +26,7 @@ export type QueryObject =
  * @returns The resulting URL string.
  * @throws {TypeError} If `queryObject` is not one of the supported shapes.
  */
-export default function toUrl(
+export function buildUrl(
   path: string | URL,
   queryObject?: QueryObject | null | false
 ): string {

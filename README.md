@@ -1,30 +1,30 @@
-# to-url
+# url-forge
 
-[![NPM Link](https://badgen.net/npm/v/to-url?v=1.0.0)](https://npmjs.com/package/to-url)
-[![Language](https://badgen.net/static/language/TS?v=1.0.0)](https://github.com/search?q=repo:kensnyder/to-url++language:TypeScript&type=code)
-[![Build Status](https://github.com/kensnyder/to-url/actions/workflows/workflow.yml/badge.svg?v=1.0.0)](https://github.com/kensnyder/to-url/actions)
-[![Code Coverage](https://codecov.io/gh/kensnyder/to-url/branch/main/graph/badge.svg?v=1.0.0)](https://codecov.io/gh/kensnyder/to-url)
-[![Gzipped Size](https://badgen.net/static/minzipped/0.5kb/green?v=1.0.0)](https://bundlephobia.com/package/to-url@1.0.0)
-[![Dependency details](https://badgen.net/static/dependencies/0/green?v=1.0.0)](https://www.npmjs.com/package/to-url?activeTab=dependencies)
-[![ISC License](https://badgen.net/github/license/kensnyder/to-url?v=1.0.0)](https://opensource.org/licenses/ISC)
+[![NPM Link](https://badgen.net/npm/v/url-forge?v=1.0.0&cb=1)](https://npmjs.com/package/url-forge)
+[![Language](https://badgen.net/static/language/TS?v=1.0.0&cb=1)](https://github.com/search?q=repo:kensnyder/url-forge++language:TypeScript&type=code)
+[![Build Status](https://github.com/kensnyder/url-forge/actions/workflows/workflow.yml/badge.svg?v=1.0.0&cb=1)](https://github.com/kensnyder/url-forge/actions)
+[![Code Coverage](https://codecov.io/gh/kensnyder/url-forge/branch/main/graph/badge.svg?v=1.0.0&cb=1)](https://codecov.io/gh/kensnyder/url-forge)
+[![Gzipped Size](https://badgen.net/static/minzipped/0.5kb/green?v=1.0.0&cb=1)](https://bundlephobia.com/package/url-forge@1.0.0)
+[![Dependency details](https://badgen.net/static/dependencies/0/green?v=1.0.0&cb=1)](https://www.npmjs.com/package/url-forge?activeTab=dependencies)
+[![ISC License](https://badgen.net/github/license/kensnyder/url-forge?v=1.0.0&cb=1)](https://opensource.org/licenses/ISC)
 
-`to-url` is a lightweight, dependency-free TypeScript library providing a single simple function for constructing URLs by merging query parameters from objects, arrays of entries, or `URLSearchParams`.
+`url-forge` is a lightweight, dependency-free TypeScript library providing a single simple function for constructing URLs by merging query parameters from objects, arrays of entries, or `URLSearchParams`.
 
 ```bash
-npm install to-url
+npm install url-forge
 ```
 
 ## Usage
 
 ```ts
-import toUrl from 'to-url';
+import { buildUrl } from 'url-forge';
 
 // Object: overwrites existing parameters, supports arrays, sorted by name
-toUrl('/api/search?page=1', { sort: 'asc', filter: ['a', 'b'] });
+buildUrl('/api/search?page=1', { sort: 'asc', filter: ['a', 'b'] });
 // => "/api/search?filter=a&filter=b&page=1&sort=asc"
 
 // Entries array: appends values, sorted by name
-toUrl('/api/search', [
+buildUrl('/api/search', [
   ['tag', 'js'],
   ['tag', 'ts'],
 ]);
@@ -32,7 +32,7 @@ toUrl('/api/search', [
 
 // URLSearchParams: appends values, sorted by name
 const params = new URLSearchParams({ q: 'hello' });
-toUrl('https://example.com/path#hash', params);
+buildUrl('https://example.com/path#hash', params);
 // => "https://example.com/path?q=hello#hash"
 ```
 
@@ -53,13 +53,13 @@ An object replaces every existing value for that name, whether you pass one
 value or several. An empty array clears the name entirely.
 
 ```ts
-toUrl('/items?color=red', { color: 'blue' });
+buildUrl('/items?color=red', { color: 'blue' });
 // => "/items?color=blue"
 
-toUrl('/items?color=red', { color: ['blue', 'green'] });
+buildUrl('/items?color=red', { color: ['blue', 'green'] });
 // => "/items?color=blue&color=green"
 
-toUrl('/items?color=red', { color: [] });
+buildUrl('/items?color=red', { color: [] });
 // => "/items"
 ```
 
@@ -67,13 +67,13 @@ Entries and `URLSearchParams` add to what is already there rather than
 replacing it.
 
 ```ts
-toUrl('/items?color=red', [
+buildUrl('/items?color=red', [
   ['color', 'blue'],
   ['color', 'green'],
 ]);
 // => "/items?color=red&color=blue&color=green"
 
-toUrl('/items?color=red', new URLSearchParams({ color: 'blue' }));
+buildUrl('/items?color=red', new URLSearchParams({ color: 'blue' }));
 // => "/items?color=red&color=blue"
 ```
 
@@ -84,8 +84,8 @@ byte-identical URL no matter what order they were supplied in. That keeps cache
 keys, request signatures, and snapshot comparisons stable.
 
 ```ts
-toUrl('/report', { to: '2026-01-31', from: '2026-01-01' });
-toUrl('/report', { from: '2026-01-01', to: '2026-01-31' });
+buildUrl('/report', { to: '2026-01-31', from: '2026-01-01' });
+buildUrl('/report', { from: '2026-01-01', to: '2026-01-31' });
 // both => "/report?from=2026-01-01&to=2026-01-31"
 ```
 
@@ -93,7 +93,7 @@ Sorting applies to the merged result, so parameters already present on the path
 are sorted too.
 
 ```ts
-toUrl('/items?z=1&a=2', { m: 3 });
+buildUrl('/items?z=1&a=2', { m: 3 });
 // => "/items?a=2&m=3&z=1"
 ```
 
@@ -101,7 +101,7 @@ Sorting is by name only. Repeated values for the same name keep the order they
 were supplied in, since that order is often meaningful.
 
 ```ts
-toUrl('/log', [
+buildUrl('/log', [
   ['at', '3'],
   ['id', 'x'],
   ['at', '1'],
@@ -125,4 +125,4 @@ normalizes to `?a=+b`.
 
 ## Contributions and local development
 
-[Bun](https://bun.sh) is required for testing and building the `to-url` package.
+[Bun](https://bun.sh) is required for testing and building the `url-forge` package.

@@ -1,6 +1,6 @@
-# Agent Guide for to-url
+# Agent Guide for url-forge
 
-`to-url` is a lightweight, dependency-free TypeScript library providing a single simple function for constructing URLs by merging query parameters from objects, arrays of entries, or `URLSearchParams`.
+`url-forge` is a lightweight, dependency-free TypeScript library providing a single simple function for constructing URLs by merging query parameters from objects, arrays of entries, or `URLSearchParams`.
 
 ## General
 
@@ -10,7 +10,7 @@
 - **Runtime:** Use `bun`, `bunx` and `bunx --bun`. DO NOT use `node`, `npm` or `npx` without user approval.
 
 ### Repository File Structure
-- `index.ts`: Main entry point exporting the `toUrl` function.
+- `index.ts`: Main entry point exporting the `buildUrl` function.
 - `/tests`: Unit tests corresponding to the library.
 - `/dist`: Generated build artifacts (CommonJS, ESM, and type definitions).
 - `package.json`: Scripts, devDependencies (bun:test, esbuild, TypeScript), and metadata.

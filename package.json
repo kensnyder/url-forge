@@ -1,6 +1,6 @@
 {
-  "name": "to-url",
-  "version": "1.1.0",
+  "name": "url-forge",
+  "version": "1.0.0",
   "description": "Construct URLs by merging query parameters from objects, entries, or URLSearchParams",
   "type": "module",
   "main": "./dist/index.cjs",
@@ -17,7 +17,7 @@
   "files": ["dist", "README.md", "LICENSE.md"],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/kensnyder/to-url.git"
+    "url": "git+https://github.com/kensnyder/url-forge.git"
   },
   "keywords": [
     "url",
