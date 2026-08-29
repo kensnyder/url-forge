@@ -5,7 +5,7 @@
 [![Build Status](https://github.com/kensnyder/to-url/actions/workflows/workflow.yml/badge.svg?v=1.0.0)](https://github.com/kensnyder/to-url/actions)
 [![Code Coverage](https://codecov.io/gh/kensnyder/to-url/branch/main/graph/badge.svg?v=1.0.0)](https://codecov.io/gh/kensnyder/to-url)
 [![Gzipped Size](https://badgen.net/static/minzipped/0.5kb/green?v=1.0.0)](https://bundlephobia.com/package/to-url@1.0.0)
-[![Dependency details](https://badgen.net/bundlephobia/dependency-count/to-url?v=1.0.0)](https://www.npmjs.com/package/to-url?activeTab=dependencies)
+[![Dependency details](https://badgen.net/static/dependencies/0/green?v=1.0.0)](https://www.npmjs.com/package/to-url?activeTab=dependencies)
 [![ISC License](https://badgen.net/github/license/kensnyder/to-url?v=1.0.0)](https://opensource.org/licenses/ISC)
 
 `to-url` is a lightweight, dependency-free TypeScript library providing a single simple function for constructing URLs by merging query parameters from objects, arrays of entries, or `URLSearchParams`.
