@@ -1,0 +1,53 @@
+{
+  "name": "to-url",
+  "version": "1.1.0",
+  "description": "Construct URLs by merging query parameters from objects, entries, or URLSearchParams",
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "require": "./dist/index.cjs",
+      "import": "./dist/index.mjs"
+    }
+  },
+  "sideEffects": false,
+  "files": ["dist", "README.md", "LICENSE.md"],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kensnyder/to-url.git"
+  },
+  "keywords": [
+    "url",
+    "query",
+    "query-string",
+    "querystring",
+    "params",
+    "searchparams",
+    "urlsearchparams"
+  ],
+  "scripts": {
+    "lint": "biome check",
+    "typecheck": "tsc --noEmit",
+    "format": "biome format --write",
+    "test": "bun test ./tests/",
+    "test-watch": "bun test --watch ./tests/",
+    "build": "bun run build:clean && bun run build:dts && bun run build:esm && bun run build:cjs && bun run build:gzip-size",
+    "build:clean": "rm -rf dist/ && mkdir dist",
+    "build:dts": "tsc --project tsconfig.build.json --outDir dist",
+    "build:esm": "bun build ./index.ts --bundle --minify --platform=node --format=esm --outfile=dist/index.mjs",
+    "build:cjs": "bun build ./index.ts --bundle --minify --platform=node --format=cjs --outfile=dist/index.cjs",
+    "build:gzip-size": "echo 'gzipped savings and size:' && gzip -cv dist/index.mjs | wc -c",
+    "coverage": "bun test --coverage --coverage-reporter=lcov ./tests/",
+    "view-coverage": "open ./coverage/index.html"
+  },
+  "author": "Ken Snyder <kendsnyder@gmail.com>",
+  "license": "ISC",
+  "devDependencies": {
+    "@biomejs/biome": "2.5.11",
+    "bun-types": "1.4.0",
+    "typescript": "7.0.2"
+  }
+}
