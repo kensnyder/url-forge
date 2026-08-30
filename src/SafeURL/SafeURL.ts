@@ -5,7 +5,7 @@ export type Stringifiable = string | { toString: () => string };
  *
  * It only ever exists inside the wrapped `URL`. Every accessor that could leak
  * it (`host`, `hostname`, `origin`, `port`, `protocol`, `href`, ...) reports an
- * empty string or omits the origin entirely while {@link SafeUrl#hasDomain} is
+ * empty string or omits the origin entirely while {@link SafeURL#hasDomain} is
  * `false`.
  */
 const SENTINEL_ORIGIN = 'http://safe-url-parser.local';
@@ -36,23 +36,23 @@ type ResolvedUrl = {
  * A `URL` that never throws.
  *
  * `URL` rejects anything without a scheme and authority, so `new URL('/a/b')`
- * throws and callers end up wrapping every construction in a `try`. `SafeUrl`
+ * throws and callers end up wrapping every construction in a `try`. `SafeURL`
  * accepts the same inputs as `URL` plus every relative reference, and parses
  * domain-less references against a private sentinel origin.
  *
  * When neither the reference nor the base carries an authority, `host`,
  * `hostname`, `origin`, `port`, `protocol`, `username` and `password` all read
  * as an empty string, and `href` is just the path, query and hash. The number
- * of leading slashes is preserved, so `SafeUrl` distinguishes the three shapes
+ * of leading slashes is preserved, so `SafeURL` distinguishes the three shapes
  * `URL` cannot:
  *
  * ```ts
- * new SafeUrl('//localhost').hostname; // 'localhost' — same as http://localhost
- * new SafeUrl('/localhost').pathname;  // '/localhost' — an absolute path
- * new SafeUrl('localhost').pathname;   // 'localhost'  — a relative path
+ * new SafeURL('//localhost').hostname; // 'localhost' — same as http://localhost
+ * new SafeURL('/localhost').pathname;  // '/localhost' — an absolute path
+ * new SafeURL('localhost').pathname;   // 'localhost'  — a relative path
  * ```
  */
-export default class SafeUrl implements URL {
+export default class SafeURL implements URL {
   protected _url: URL;
   protected _hasDomain: boolean;
   protected _slashCount: SlashCount;
@@ -239,7 +239,7 @@ export default class SafeUrl implements URL {
 
   /**
    * Whether `inputUrl` can be parsed. Mirrors `URL.canParse`, and is `true` for
-   * every value that stringifies, since `SafeUrl` accepts relative references.
+   * every value that stringifies, since `SafeURL` accepts relative references.
    */
   static canParse(inputUrl: Stringifiable, base?: Stringifiable): boolean {
     try {
@@ -255,8 +255,8 @@ export default class SafeUrl implements URL {
   /**
    * Parse `inputUrl`. Mirrors `URL.parse`, except that it never returns `null`.
    */
-  static parse(inputUrl: Stringifiable, base?: Stringifiable): SafeUrl {
-    return new SafeUrl(inputUrl, base);
+  static parse(inputUrl: Stringifiable, base?: Stringifiable): SafeURL {
+    return new SafeURL(inputUrl, base);
   }
 
   /** Delegates to the global `URL`; provided only for API parity. */

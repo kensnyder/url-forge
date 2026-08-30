@@ -18,7 +18,7 @@ npm install url-forge
 ## Usage
 
 ```ts
-import { buildSearchParams, buildUrl, SafeUrl } from 'url-forge';
+import { buildSearchParams, buildUrl, SafeURL } from 'url-forge';
 
 // Object: overwrites existing parameters, supports arrays, sorted by name
 buildUrl('/api/search?page=1', { sort: 'asc', filter: ['a', 'b'] });
@@ -41,9 +41,9 @@ const merged = buildSearchParams({ sort: 'asc', filter: ['a', 'b'] });
 merged.getAll('filter'); // => ["a", "b"]
 merged.toString(); // => "sort=asc&filter=a&filter=b"
 
-// SafeUrl: a URL that parses relative references instead of throwing
+// SafeURL: a URL that parses relative references instead of throwing
 new URL('/api/search?page=1'); // throws TypeError
-const url = new SafeUrl('/api/search?page=1');
+const url = new SafeURL('/api/search?page=1');
 url.pathname; // => "/api/search"
 url.hostname; // => "" (the input named no host)
 url.searchParams.get('page'); // => "1"
@@ -100,24 +100,24 @@ type QueryObject =
   | URLSearchParams;
 ```
 
-### new SafeUrl(url, base?)
+### new SafeURL(url, base?)
 
 A `URL` that never throws. It accepts every relative reference `URL` rejects,
 and reports an empty `hostname`, `host`, `origin`, `protocol` and `port` when
 neither argument names a domain. See
-[Parsing with SafeUrl](#parsing-with-safeurl) below.
+[Parsing with SafeURL](#parsing-with-safeurl) below.
 
 | Argument | Type | Description |
 | --- | --- | --- |
 | `url` | `Stringifiable` | The reference to parse. Absolute or relative |
 | `base` | `Stringifiable` | Optional base to resolve against. Unlike `URL`, it may itself be relative |
 
-`SafeUrl` implements the whole `URL` interface — every getter and setter, plus
-`toString()`, `toJSON()`, `SafeUrl.canParse()` and `SafeUrl.parse()` — so it can
+`SafeURL` implements the whole `URL` interface — every getter and setter, plus
+`toString()`, `toJSON()`, `SafeURL.canParse()` and `SafeURL.parse()` — so it can
 be passed anywhere a `URL` is expected, `buildUrl` included.
 
 ```ts
-buildUrl(new SafeUrl('/api/search'), { sort: 'asc' });
+buildUrl(new SafeURL('/api/search'), { sort: 'asc' });
 // => "/api/search?sort=asc"
 ```
 
@@ -126,8 +126,8 @@ It adds one member of its own, `hasDomain`, described under
 
 ### Stringifiable
 
-The type `SafeUrl` accepts for both arguments, exported for annotating your own
-helpers. A `URL`, a `SafeUrl`, and anything else with a `toString` all qualify.
+The type `SafeURL` accepts for both arguments, exported for annotating your own
+helpers. A `URL`, a `SafeURL`, and anything else with a `toString` all qualify.
 
 ```ts
 import type { Stringifiable } from 'url-forge';
@@ -255,40 +255,40 @@ Existing parameters are re-encoded by `URLSearchParams`, so an equivalent but
 not always identical encoding may come back — for example, `?a=%20b`
 normalizes to `?a=+b`.
 
-## Parsing with SafeUrl
+## Parsing with SafeURL
 
 `URL` throws on anything without a scheme and an authority, so many of the
 references a real application handles — `/api/search`, `../sibling`, `?page=2` —
 cannot go through it at all, and the ones that can have to be wrapped in a
 `try`.
 
-`SafeUrl` accepts all of them. Domain-less references are parsed against a
+`SafeURL` accepts all of them. Domain-less references are parsed against a
 private origin that no accessor ever exposes, so a reference that named no
 domain reports no domain rather than an invented one.
 
 ```ts
 new URL('/api/search'); // throws TypeError
-new SafeUrl('/api/search').pathname; // => "/api/search"
-new SafeUrl('/api/search').hostname; // => ""
+new SafeURL('/api/search').pathname; // => "/api/search"
+new SafeURL('/api/search').hostname; // => ""
 ```
 
 Anything `URL` already accepts is handed straight to it, so absolute URLs behave
 exactly as they always have, opaque schemes included.
 
 ```ts
-const url = new SafeUrl('https://user:pw@example.com:8080/a/b?x=1#h');
+const url = new SafeURL('https://user:pw@example.com:8080/a/b?x=1#h');
 url.origin; // => "https://example.com:8080"
 url.host; // => "example.com:8080"
 url.port; // => "8080"
 url.pathname; // => "/a/b"
 
-new SafeUrl('mailto:me@example.com').protocol; // => "mailto:"
-new SafeUrl('mailto:me@example.com').pathname; // => "me@example.com"
+new SafeURL('mailto:me@example.com').protocol; // => "mailto:"
+new SafeURL('mailto:me@example.com').pathname; // => "me@example.com"
 ```
 
 ### Leading slashes
 
-How a reference begins is what separates a host from a path, and `SafeUrl`
+How a reference begins is what separates a host from a path, and `SafeURL`
 preserves that distinction — including the absence of a leading slash, which
 `URL` has no way to represent.
 
@@ -302,17 +302,17 @@ A protocol-relative reference is exactly the URL it would be with a scheme
 attached, so `//localhost` and `http://localhost` parse alike.
 
 ```ts
-new SafeUrl('//localhost').href; // => "http://localhost/"
-new SafeUrl('//localhost/a/b').hostname; // => "localhost"
+new SafeURL('//localhost').href; // => "http://localhost/"
+new SafeURL('//localhost/a/b').hostname; // => "localhost"
 ```
 
 A relative path stays relative through resolution, so `pathname` and `href`
 give back what you put in.
 
 ```ts
-new SafeUrl('a/b/c').pathname; // => "a/b/c"
-new SafeUrl('./a/b').pathname; // => "a/b"
-new SafeUrl('a/../b').pathname; // => "b"
+new SafeURL('a/b/c').pathname; // => "a/b/c"
+new SafeURL('./a/b').pathname; // => "a/b"
+new SafeURL('a/../b').pathname; // => "b"
 ```
 
 ### Domain-less references
@@ -321,7 +321,7 @@ While there is no domain, every accessor that describes one reads as an empty
 string, and `href` is just the path, query and hash.
 
 ```ts
-const url = new SafeUrl('/a/b?x=1#h');
+const url = new SafeURL('/a/b?x=1#h');
 url.protocol; // => ""
 url.host; // => ""
 url.hostname; // => ""
@@ -339,30 +339,30 @@ url.href; // => "/a/b?x=1#h"
 References with no path at all are preserved just as faithfully.
 
 ```ts
-new SafeUrl('').href; // => ""
-new SafeUrl('?x=1').href; // => "?x=1"
-new SafeUrl('#h').href; // => "#h"
-new SafeUrl('/').href; // => "/"
+new SafeURL('').href; // => ""
+new SafeURL('?x=1').href; // => "?x=1"
+new SafeURL('#h').href; // => "#h"
+new SafeURL('/').href; // => "/"
 ```
 
 ### Relative bases
 
 `URL` requires an absolute base, which makes it useless for resolving one
-relative reference against another. `SafeUrl` accepts a base of any shape, and
+relative reference against another. `SafeURL` accepts a base of any shape, and
 the result keeps the shape of whichever argument determined it.
 
 ```ts
-new SafeUrl('c', 'a/b').href; // => "a/c"
-new SafeUrl('c', '/a/b').href; // => "/a/c"
-new SafeUrl('/c', 'a/b').href; // => "/c"
+new SafeURL('c', 'a/b').href; // => "a/c"
+new SafeURL('c', '/a/b').href; // => "/a/c"
+new SafeURL('/c', 'a/b').href; // => "/c"
 ```
 
 A domain reaches the result from wherever it appears, base included.
 
 ```ts
-new SafeUrl('c', '//example.com/a/b').href; // => "http://example.com/a/c"
-new SafeUrl('c', 'https://example.com/a/b').href; // => "https://example.com/a/c"
-new SafeUrl('//other.com/a', 'https://example.com/b').href;
+new SafeURL('c', '//example.com/a/b').href; // => "http://example.com/a/c"
+new SafeURL('c', 'https://example.com/a/b').href; // => "https://example.com/a/c"
+new SafeURL('//other.com/a', 'https://example.com/b').href;
 // => "https://other.com/a"
 ```
 
@@ -372,13 +372,13 @@ An empty `hostname` is ambiguous on its own: `mailto:` URLs have one too. The
 `hasDomain` property answers the question directly.
 
 ```ts
-new SafeUrl('https://example.com').hasDomain; // => true
-new SafeUrl('//example.com').hasDomain; // => true
-new SafeUrl('a', '//example.com/b').hasDomain; // => true
+new SafeURL('https://example.com').hasDomain; // => true
+new SafeURL('//example.com').hasDomain; // => true
+new SafeURL('a', '//example.com/b').hasDomain; // => true
 
-new SafeUrl('/a/b').hasDomain; // => false
-new SafeUrl('a/b').hasDomain; // => false
-new SafeUrl('').hasDomain; // => false
+new SafeURL('/a/b').hasDomain; // => false
+new SafeURL('a/b').hasDomain; // => false
+new SafeURL('').hasDomain; // => false
 ```
 
 ### Mutation
@@ -386,7 +386,7 @@ new SafeUrl('').hasDomain; // => false
 Every `URL` setter works, and `searchParams` is live in the same way.
 
 ```ts
-const url = new SafeUrl('/a');
+const url = new SafeURL('/a');
 url.searchParams.set('x', '1');
 url.searchParams.append('y', '2');
 url.href; // => "/a?x=1&y=2"
@@ -396,11 +396,11 @@ Assigning a `hostname` or `host` gives a domain-less URL a domain. Assigning an
 empty one takes it away — something `URL` silently refuses to do.
 
 ```ts
-const relative = new SafeUrl('/a/b');
+const relative = new SafeURL('/a/b');
 relative.hostname = 'example.com';
 relative.href; // => "http://example.com/a/b"
 
-const absolute = new SafeUrl('https://example.com/a/b?x=1');
+const absolute = new SafeURL('https://example.com/a/b?x=1');
 absolute.hostname = '';
 absolute.href; // => "/a/b?x=1"
 ```
@@ -409,7 +409,7 @@ Assigning a `pathname` re-reads its leading slash, so a path can be moved
 between the rooted and relative shapes.
 
 ```ts
-const url = new SafeUrl('/a/b');
+const url = new SafeURL('/a/b');
 url.pathname = 'c/d';
 url.href; // => "c/d"
 ```
@@ -418,7 +418,7 @@ Assigning `href` re-parses from scratch under the same rules, so unlike `URL` it
 accepts a relative value.
 
 ```ts
-const url = new SafeUrl('https://example.com/a');
+const url = new SafeURL('https://example.com/a');
 url.href = 'c/d?x=1';
 url.hostname; // => ""
 url.href; // => "c/d?x=1"
@@ -429,7 +429,7 @@ hidden, since a scheme without an authority describes nothing. It surfaces once
 a host makes it meaningful.
 
 ```ts
-const url = new SafeUrl('/a');
+const url = new SafeURL('/a');
 url.protocol = 'https:';
 url.protocol; // => ""
 
@@ -444,28 +444,28 @@ Malformed input is salvaged rather than rejected, and round-trips through
 `href` wherever the text allows.
 
 ```ts
-new SafeUrl('http://').href; // => "http://"
-new SafeUrl('//').href; // => "//"
-new SafeUrl('ws://').href; // => "ws://"
-new SafeUrl('http://[').href; // => "http://["
+new SafeURL('http://').href; // => "http://"
+new SafeURL('//').href; // => "//"
+new SafeURL('ws://').href; // => "ws://"
+new SafeURL('http://[').href; // => "http://["
 ```
 
-`SafeUrl.canParse` exists for parity with `URL.canParse` and is therefore `true`
+`SafeURL.canParse` exists for parity with `URL.canParse` and is therefore `true`
 for every string. It returns `false` only for a value that cannot be converted
 to a string at all — an object with a throwing `toString`, or one created with
 `Object.create(null)` — which is the one and only way construction can fail.
 
 ```ts
-SafeUrl.canParse('https://example.com'); // => true
-SafeUrl.canParse('/a/b'); // => true
-SafeUrl.canParse(''); // => true
-SafeUrl.canParse(Object.create(null)); // => false
+SafeURL.canParse('https://example.com'); // => true
+SafeURL.canParse('/a/b'); // => true
+SafeURL.canParse(''); // => true
+SafeURL.canParse(Object.create(null)); // => false
 ```
 
-`SafeUrl.parse` mirrors `URL.parse`, except that it never returns `null`.
+`SafeURL.parse` mirrors `URL.parse`, except that it never returns `null`.
 
 ```ts
-SafeUrl.parse('a/b', '/c/').href; // => "/c/a/b"
+SafeURL.parse('a/b', '/c/').href; // => "/c/a/b"
 ```
 
 ## Contributions and local development
