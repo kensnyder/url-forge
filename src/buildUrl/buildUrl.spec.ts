@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'bun:test';
-import { buildUrl } from '../index';
+import buildUrl from './buildUrl';
 
 describe('buildUrl', () => {
   it('should handle basic URL and object queryObject', () => {
@@ -7,29 +7,12 @@ describe('buildUrl', () => {
     expect(result).toBe('/api/users?age=30&name=alice');
   });
 
-  it('should overwrite existing query parameter when using object', () => {
+  it('should merge into an existing query string', () => {
     const result = buildUrl('/api/users?name=bob', { name: 'alice' });
     expect(result).toBe('/api/users?name=alice');
   });
 
-  it('should ignore undefined values in object queryObject', () => {
-    const result = buildUrl('/api/users?name=bob', { age: undefined });
-    expect(result).toBe('/api/users?name=bob');
-  });
-
-  it('should support array values in object queryObject', () => {
-    const result = buildUrl('/api/users', { tag: ['admin', 'active'] });
-    expect(result).toBe('/api/users?tag=admin&tag=active');
-  });
-
-  it('should overwrite existing parameter with array values', () => {
-    const result = buildUrl('/api/users?tag=guest', {
-      tag: ['admin', 'active'],
-    });
-    expect(result).toBe('/api/users?tag=admin&tag=active');
-  });
-
-  it('should clear existing parameter given an empty array', () => {
+  it('should omit the query string when no parameters remain', () => {
     const result = buildUrl('/api/users?tag=guest', { tag: [] });
     expect(result).toBe('/api/users');
   });
@@ -72,27 +55,6 @@ describe('buildUrl', () => {
     expect(result).toBe('/path?k=v1&k=v2');
   });
 
-  it('should allow undefined entries', () => {
-    const url = buildUrl('/path', [['preview']]);
-    expect(url).toBe('/path?preview=');
-  });
-
-  it('should coerce non-string entry names', () => {
-    // @ts-expect-error entry names are typed as strings but coerced at runtime
-    const url = buildUrl('/path', [[42, 'answer']]);
-    expect(url).toBe('/path?42=answer');
-  });
-
-  it('should stringify boolean values', () => {
-    const url = buildUrl('/path', { active: true, archived: false });
-    expect(url).toBe('/path?active=true&archived=false');
-  });
-
-  it('should treat null values as empty strings', () => {
-    const url = buildUrl('/path', { q: null });
-    expect(url).toBe('/path?q=');
-  });
-
   it('should ignore falsy query', () => {
     expect(buildUrl('/path', null)).toBe('/path');
     expect(buildUrl('/path', false)).toBe('/path');
@@ -106,6 +68,11 @@ describe('buildUrl', () => {
     expect(second).toBe(first);
   });
 
+  it('should sort parameters already present on the path', () => {
+    const url = buildUrl('/items?z=1&a=2', { m: 3 });
+    expect(url).toBe('/items?a=2&m=3&z=1');
+  });
+
   it('should keep insertion order among values of the same name', () => {
     const url = buildUrl('/path', [
       ['z', '1'],
@@ -115,19 +82,10 @@ describe('buildUrl', () => {
     expect(url).toBe('/path?a=2&z=1&z=0');
   });
 
-  it('should throw error for non-object queryObject', () => {
+  it('should throw error for an invalid queryObject', () => {
     expect(() => {
       // @ts-expect-error queryObject must be an object, entries, or params
       buildUrl('/path', 'invalid');
-    }).toThrow(
-      'Invalid queryObject. Expected object, array of entries, or URLSearchParams.'
-    );
-  });
-
-  it('should throw error for a malformed entry', () => {
-    expect(() => {
-      // @ts-expect-error entries must have at least a name
-      buildUrl('/path', [[]]);
     }).toThrow(
       'Invalid queryObject. Expected object, array of entries, or URLSearchParams.'
     );

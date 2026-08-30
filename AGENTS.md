@@ -10,20 +10,32 @@
 - **Runtime:** Use `bun`, `bunx` and `bunx --bun`. DO NOT use `node`, `npm` or `npx` without user approval.
 
 ### Repository File Structure
-- `index.ts`: Main entry point exporting the `buildUrl` function.
-- `/tests`: Unit tests corresponding to the library.
+- `index.ts`: Main entry point exporting URL functions.
+- `/src`: Source files with a subfolder for each function. Subfolder contains the function source file and a colocated spec file.
 - `/dist`: Generated build artifacts (CommonJS, ESM, and type definitions).
 - `package.json`: Scripts, devDependencies (bun:test, esbuild, TypeScript), and metadata.
-- `bun.lock`, `tsconfig.json` & `tsconfig.build.json`: Environment and compiler
-  configuration. `tsconfig.build.json` is used only to emit `dist/index.d.ts`.
+- `bun.lock`, `tsconfig.json` & `tsconfig.bundle-generator.json`: Environment
+  and compiler configuration. `tsconfig.bundle-generator.json` is used only to
+  emit `dist/index.d.ts`.
 
-Declarations are emitted by `tsc` itself. Do not reintroduce
-`dts-bundle-generator` or a similar bundler: TypeScript 7 is the native
-compiler and no longer ships the legacy JavaScript compiler API those tools are
-built on, so they cannot run against the project's `typescript` dependency.
+Declarations are bundled into a single `dist/index.d.ts` by
+`dts-bundle-generator`. That tool is built on the legacy JavaScript compiler
+API, which TypeScript 7 no longer ships — its `typescript` export is only a
+version string, so `ts.sys` is `undefined` and the tool crashes on load. The
+project therefore keeps a second, aliased TypeScript 5 (`typescript-5`) purely
+for `dts-bundle-generator`. Bun does not support nested `overrides`, so
+`build:dts:link` symlinks that alias into
+`node_modules/dts-bundle-generator/node_modules/typescript`, which is where the
+tool's `require('typescript')` looks first. `build:dts` runs that link step
+every time, so a fresh clone or a `bun install` that prunes the link repairs
+itself. Do not remove `typescript-5` or the link step, and do not use it for
+anything else: `tsc`, `bun run typecheck`, and the editor all use the root
+TypeScript 7.
 
 ### Commands and Tools
-- `bun run build`: Generates ESM, CJS, and DTS files using `bun build`.
+- `bun run build`: Generates ESM, CJS, and DTS files. Bundling is done by
+  `esbuild`; `bun build --bundle` is not used because Bun 1.3.14 emits dangling
+  identifiers for re-export barrels like `index.ts`.
 - `bun run lint`: Checks formatting, imports and lint rules using `biome`.
 - `bun run typecheck`: Type-checks the project via `tsc --noEmit`. Biome does
   not check types, so run this alongside `bun run lint` before calling work
@@ -33,8 +45,10 @@ built on, so they cannot run against the project's `typescript` dependency.
 - `bun test --watch`: Runs tests in watch mode for active development.
 - `bun run coverage`: Generates reports via `bun test --coverage`.
 - `bun run build:clean`: Removes the `dist/` directory to ensure a fresh build.
-- `bun run build:dts`: Emits `dist/index.d.ts` via `tsc --project
-  tsconfig.build.json`.
+- `bun run build:dts`: Emits a single bundled `dist/index.d.ts` via
+  `dts-bundle-generator`, using `tsconfig.bundle-generator.json`.
+- `bun run build:dts:link`: Points `dts-bundle-generator` at the aliased
+  TypeScript 5. Run automatically by `build:dts`.
 
 ### Coding Style Rules
 

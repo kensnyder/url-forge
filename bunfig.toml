@@ -4,8 +4,5 @@ telemetry = false
 peer = true
 exact = true
 
-[test]
-root = "tests"
-
 [console]
 depth = 12
