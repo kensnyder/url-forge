@@ -137,7 +137,7 @@ describe('SafeURL', () => {
     });
   });
 
-  describe('never throwing', () => {
+  describe('accepting relative references', () => {
     const inputs = [
       '',
       ' ',
@@ -266,6 +266,250 @@ describe('SafeURL', () => {
       url.searchParams.append('y', '2');
       expect(url.search).toBe('?x=1&y=2');
       expect(url.href).toBe('/a?x=1&y=2');
+    });
+  });
+
+  describe('mergeSearchParams', () => {
+    it('should add params to a url with no query', () => {
+      const url = new SafeURL('https://example.com/a');
+      url.mergeSearchParams({ x: 1, y: 'two' });
+      expect(url.search).toBe('?x=1&y=two');
+      expect(url.href).toBe('https://example.com/a?x=1&y=two');
+    });
+    it('should overwrite existing params of the same name', () => {
+      const url = new SafeURL('https://example.com/a?x=1&y=2');
+      url.mergeSearchParams({ x: 9, z: 3 });
+      // an object cannot express a repeated key, so `x` is replaced and, being
+      // rewritten, moves to the end
+      expect(url.search).toBe('?y=2&x=9&z=3');
+    });
+    it('should append when given entries', () => {
+      const url = new SafeURL('https://example.com/a?x=1');
+      url.mergeSearchParams([
+        ['x', 2],
+        ['y', 3],
+      ]);
+      expect(url.search).toBe('?x=1&x=2&y=3');
+    });
+    it('should append when given URLSearchParams', () => {
+      const url = new SafeURL('https://example.com/a?x=1');
+      url.mergeSearchParams(new URLSearchParams('x=2&y=3'));
+      expect(url.search).toBe('?x=1&x=2&y=3');
+    });
+    it('should expand array values into repeated params', () => {
+      const url = new SafeURL('/a');
+      url.mergeSearchParams({ tags: ['a', 'b'] });
+      expect(url.search).toBe('?tags=a&tags=b');
+    });
+    it('should drop a param given an empty array', () => {
+      const url = new SafeURL('/a?x=1');
+      url.mergeSearchParams({ x: [] });
+      expect(url.search).toBe('');
+      expect(url.href).toBe('/a');
+    });
+    it('should skip undefined values but keep null ones', () => {
+      const url = new SafeURL('/a?x=1&y=2');
+      url.mergeSearchParams({ x: undefined, y: null });
+      expect(url.search).toBe('?x=1&y=');
+    });
+    it('should leave the query untouched when merging nothing', () => {
+      const url = new SafeURL('/a?x=1');
+      url.mergeSearchParams({});
+      url.mergeSearchParams([]);
+      url.mergeSearchParams(new URLSearchParams());
+      expect(url.search).toBe('?x=1');
+    });
+    it('should encode names and values', () => {
+      const url = new SafeURL('/a');
+      url.mergeSearchParams({ 'a b': 'c&d' });
+      expect(url.search).toBe('?a+b=c%26d');
+      expect(url.searchParams.get('a b')).toBe('c&d');
+    });
+    it('should stringify non-string values', () => {
+      const url = new SafeURL('/a');
+      url.mergeSearchParams({ n: 0, t: true, s: { toString: () => 'obj' } });
+      expect(url.search).toBe('?n=0&t=true&s=obj');
+    });
+    it('should preserve the path and hash', () => {
+      const url = new SafeURL('https://example.com/a/b#h');
+      url.mergeSearchParams({ x: 1 });
+      expect(url.href).toBe('https://example.com/a/b?x=1#h');
+    });
+    it('should merge into a domain-less url', () => {
+      const url = new SafeURL('a/b?x=1');
+      url.mergeSearchParams({ y: 2 });
+      expect(url.hasDomain).toBe(false);
+      expect(url.href).toBe('a/b?x=1&y=2');
+    });
+    it('should keep searchParams live', () => {
+      const url = new SafeURL('/a');
+      const params = url.searchParams;
+      url.mergeSearchParams({ x: 1 });
+      expect(params).toBe(url.searchParams);
+      expect(params.get('x')).toBe('1');
+    });
+    it('should not modify the params it was given', () => {
+      const url = new SafeURL('/a?x=1');
+      const source = new URLSearchParams('y=2');
+      url.mergeSearchParams(source);
+      expect(source.toString()).toBe('y=2');
+    });
+    it('should return this so merges can be chained', () => {
+      const url = new SafeURL('/a?x=1');
+      const returned = url.mergeSearchParams({ x: 2 }).mergeSearchParams({
+        y: 3,
+      });
+      expect(returned).toBe(url);
+      expect(url.href).toBe('/a?x=2&y=3');
+    });
+    it('should throw for an unsupported queryObject', () => {
+      const url = new SafeURL('/a');
+      expect(() => {
+        // @ts-expect-error queryObject must be an object, entries, or params
+        url.mergeSearchParams('x=1');
+      }).toThrow(
+        'Invalid queryObject. Expected object, array of entries, or URLSearchParams.'
+      );
+    });
+  });
+
+  describe('setSearchParams', () => {
+    it('should add params to a url with no query', () => {
+      const url = new SafeURL('https://example.com/a');
+      url.setSearchParams({ x: 1, y: 'two' });
+      expect(url.search).toBe('?x=1&y=two');
+      expect(url.href).toBe('https://example.com/a?x=1&y=two');
+    });
+    it('should discard existing params', () => {
+      const url = new SafeURL('https://example.com/a?x=1&y=2');
+      url.setSearchParams({ z: 3 });
+      expect(url.search).toBe('?z=3');
+    });
+    it('should discard repeated existing params', () => {
+      const url = new SafeURL('/a?x=1&x=2&x=3');
+      url.setSearchParams({ x: 4 });
+      expect(url.searchParams.getAll('x')).toEqual(['4']);
+    });
+    it('should clear the query when given nothing', () => {
+      const url = new SafeURL('/a?x=1');
+      url.setSearchParams({});
+      expect(url.search).toBe('');
+      expect(url.href).toBe('/a');
+    });
+    it('should clear the query when given empty entries or params', () => {
+      const fromEntries = new SafeURL('/a?x=1').setSearchParams([]);
+      const fromParams = new SafeURL('/a?x=1').setSearchParams(
+        new URLSearchParams()
+      );
+      expect(fromEntries.search).toBe('');
+      expect(fromParams.search).toBe('');
+    });
+    it('should append within the entries it was given', () => {
+      const url = new SafeURL('https://example.com/a?x=1');
+      url.setSearchParams([
+        ['x', 2],
+        ['x', 3],
+        ['y', 4],
+      ]);
+      // the existing `x` is gone, but repeats inside the entries are kept
+      expect(url.search).toBe('?x=2&x=3&y=4');
+    });
+    it('should append within the URLSearchParams it was given', () => {
+      const url = new SafeURL('https://example.com/a?x=1');
+      url.setSearchParams(new URLSearchParams('x=2&x=3'));
+      expect(url.search).toBe('?x=2&x=3');
+    });
+    it('should expand array values into repeated params', () => {
+      const url = new SafeURL('/a?tags=old');
+      url.setSearchParams({ tags: ['a', 'b'] });
+      expect(url.search).toBe('?tags=a&tags=b');
+    });
+    it('should drop a param given an empty array', () => {
+      const url = new SafeURL('/a?x=1');
+      url.setSearchParams({ x: [], y: 2 });
+      expect(url.search).toBe('?y=2');
+    });
+    it('should skip undefined values but keep null ones', () => {
+      const url = new SafeURL('/a?x=1&y=2');
+      url.setSearchParams({ x: undefined, y: null });
+      // `x` is skipped rather than carried over, since the old query is gone
+      expect(url.search).toBe('?y=');
+    });
+    it('should keep the params in the order they were given', () => {
+      const url = new SafeURL('/a?a=1');
+      url.setSearchParams({ z: 1, m: 2, b: 3 });
+      expect(url.search).toBe('?z=1&m=2&b=3');
+    });
+    it('should encode names and values', () => {
+      const url = new SafeURL('/a?x=1');
+      url.setSearchParams({ 'a b': 'c&d' });
+      expect(url.search).toBe('?a+b=c%26d');
+      expect(url.searchParams.get('a b')).toBe('c&d');
+    });
+    it('should stringify non-string values', () => {
+      const url = new SafeURL('/a?x=1');
+      url.setSearchParams({ n: 0, t: true, s: { toString: () => 'obj' } });
+      expect(url.search).toBe('?n=0&t=true&s=obj');
+    });
+    it('should preserve the path and hash', () => {
+      const url = new SafeURL('https://example.com/a/b?x=1#h');
+      url.setSearchParams({ y: 2 });
+      expect(url.href).toBe('https://example.com/a/b?y=2#h');
+    });
+    it('should preserve the path and hash when clearing the query', () => {
+      const url = new SafeURL('https://example.com/a/b?x=1#h');
+      url.setSearchParams({});
+      expect(url.href).toBe('https://example.com/a/b#h');
+    });
+    it('should set on a domain-less url', () => {
+      const url = new SafeURL('a/b?x=1');
+      url.setSearchParams({ y: 2 });
+      expect(url.hasDomain).toBe(false);
+      expect(url.href).toBe('a/b?y=2');
+    });
+    it('should keep searchParams live', () => {
+      const url = new SafeURL('/a?x=1');
+      const params = url.searchParams;
+      url.setSearchParams({ y: 2 });
+      expect(params).toBe(url.searchParams);
+      expect(params.get('x')).toBe(null);
+      expect(params.get('y')).toBe('2');
+    });
+    it('should not modify the params it was given', () => {
+      const url = new SafeURL('/a?x=1');
+      const source = new URLSearchParams('y=2');
+      url.setSearchParams(source);
+      expect(source.toString()).toBe('y=2');
+    });
+    it('should return this so calls can be chained', () => {
+      const url = new SafeURL('/a?x=1');
+      const returned = url.setSearchParams({ y: 2 }).setSearchParams({ z: 3 });
+      expect(returned).toBe(url);
+      // each call starts from an empty query, so only the last one survives
+      expect(url.href).toBe('/a?z=3');
+    });
+    it('should chain with mergeSearchParams', () => {
+      const url = new SafeURL('/a?x=1')
+        .setSearchParams({ y: 2 })
+        .mergeSearchParams({ z: 3 });
+      expect(url.href).toBe('/a?y=2&z=3');
+    });
+    it('should throw for an unsupported queryObject', () => {
+      const url = new SafeURL('/a');
+      expect(() => {
+        // @ts-expect-error queryObject must be an object, entries, or params
+        url.setSearchParams('x=1');
+      }).toThrow(
+        'Invalid queryObject. Expected object, array of entries, or URLSearchParams.'
+      );
+    });
+    it('should leave the query untouched when it throws', () => {
+      const url = new SafeURL('/a?x=1');
+      expect(() => {
+        // @ts-expect-error queryObject must be an object, entries, or params
+        url.setSearchParams(42);
+      }).toThrow(TypeError);
+      expect(url.search).toBe('?x=1');
     });
   });
 

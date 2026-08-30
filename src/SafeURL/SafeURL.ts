@@ -1,3 +1,7 @@
+import buildSearchParams, {
+  type QueryObject,
+} from '../buildSearchParams/buildSearchParams.ts';
+
 export type Stringifiable = string | { toString: () => string };
 
 /**
@@ -33,7 +37,7 @@ type ResolvedUrl = {
 };
 
 /**
- * A `URL` that never throws.
+ * A `URL` that accepts relative references instead of throwing on them.
  *
  * `URL` rejects anything without a scheme and authority, so `new URL('/a/b')`
  * throws and callers end up wrapping every construction in a `try`. `SafeURL`
@@ -58,8 +62,8 @@ export default class SafeURL implements URL {
   protected _slashCount: SlashCount;
 
   /**
-   * @param inputUrl The reference to parse. Absolute or relative; anything
-   *   that stringifies is accepted and nothing throws.
+   * @param inputUrl The reference to parse. Absolute or relative; relative
+   *   references are parsed rather than rejected.
    * @param base Optional base to resolve `inputUrl` against. Unlike `URL`, the
    *   base may itself be relative.
    */
@@ -68,6 +72,53 @@ export default class SafeURL implements URL {
     this._url = parsed.url;
     this._hasDomain = parsed.hasDomain;
     this._slashCount = parsed.slashCount;
+  }
+
+  /**
+   * Merge query parameters into the existing ones, in place.
+   *
+   * Objects overwrite parameters of the same name, since an object cannot
+   * express a repeated key; entry arrays and `URLSearchParams` append, since
+   * those formats can. `queryObject` itself is never modified.
+   *
+   * ```ts
+   * new SafeURL('/a?x=1').mergeSearchParams({ x: 2, y: 3 }).href; // '/a?x=2&y=3'
+   * new SafeURL('/a?x=1').mergeSearchParams([['x', 2]]).href;     // '/a?x=1&x=2'
+   * ```
+   *
+   * @param queryObject Parameters to merge, as an object, an array of
+   *   `[name, value]` entries, or a `URLSearchParams`.
+   * @returns This `SafeURL`, so merges can be chained.
+   * @throws {TypeError} If `queryObject` is not one of the supported shapes.
+   */
+  mergeSearchParams(queryObject: QueryObject): this {
+    const params = buildSearchParams(queryObject, this._url.searchParams);
+    this._url.search = params.toString();
+    return this;
+  }
+
+  /**
+   * Replace the query with `queryObject`, in place.
+   *
+   * Every parameter already on the URL is discarded first, so the result holds
+   * exactly what was passed. Within `queryObject` the usual rules still apply:
+   * objects overwrite parameters of the same name, entry arrays and
+   * `URLSearchParams` append. `queryObject` itself is never modified.
+   *
+   * ```ts
+   * new SafeURL('/a?x=1').setSearchParams({ y: 2 }).href; // '/a?y=2'
+   * new SafeURL('/a?x=1').setSearchParams({}).href;       // '/a'
+   * ```
+   *
+   * @param queryObject Parameters to set, as an object, an array of
+   *   `[name, value]` entries, or a `URLSearchParams`.
+   * @returns This `SafeURL`, so calls can be chained.
+   * @throws {TypeError} If `queryObject` is not one of the supported shapes.
+   */
+  setSearchParams(queryObject: QueryObject): this {
+    const params = buildSearchParams(queryObject);
+    this._url.search = params.toString();
+    return this;
   }
 
   /**
@@ -243,8 +294,7 @@ export default class SafeURL implements URL {
    */
   static canParse(inputUrl: Stringifiable, base?: Stringifiable): boolean {
     try {
-      String(inputUrl);
-      String(base);
+      new SafeURL(inputUrl);
       return true;
     } catch {
       // only reachable when stringifying `inputUrl` or `base` throws

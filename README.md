@@ -47,6 +47,14 @@ const url = new SafeURL('/api/search?page=1');
 url.pathname; // => "/api/search"
 url.hostname; // => "" (the input named no host)
 url.searchParams.get('page'); // => "1"
+
+// SafeURL: merge parameters into a URL you are holding
+url.mergeSearchParams({ page: 2, sort: 'asc' });
+url.href; // => "/api/search?page=2&sort=asc"
+
+// SafeURL: or replace them outright
+url.setSearchParams({ page: 3 });
+url.href; // => "/api/search?page=3"
 ```
 
 ## API
@@ -89,7 +97,8 @@ buildSearchParams({ page: 2 }, existing).toString();
 
 ### QueryObject
 
-The type shared by both functions, exported for annotating your own helpers.
+The type shared by both functions and by `mergeSearchParams` and
+`setSearchParams`, exported for annotating your own helpers.
 
 ```ts
 import type { QueryObject } from 'url-forge';
@@ -102,9 +111,9 @@ type QueryObject =
 
 ### new SafeURL(url, base?)
 
-A `URL` that never throws. It accepts every relative reference `URL` rejects,
-and reports an empty `hostname`, `host`, `origin`, `protocol` and `port` when
-neither argument names a domain. See
+A `URL` that accepts relative references instead of throwing on them. It parses
+every relative reference `URL` rejects, and reports an empty `hostname`, `host`,
+`origin`, `protocol` and `port` when neither argument names a domain. See
 [Parsing with SafeURL](#parsing-with-safeurl) below.
 
 | Argument | Type | Description |
@@ -121,8 +130,89 @@ buildUrl(new SafeURL('/api/search'), { sort: 'asc' });
 // => "/api/search?sort=asc"
 ```
 
-It adds one member of its own, `hasDomain`, described under
-[Knowing whether there is a domain](#knowing-whether-there-is-a-domain).
+It adds three members of its own: `hasDomain`, described under
+[Knowing whether there is a domain](#knowing-whether-there-is-a-domain), and
+`mergeSearchParams` and `setSearchParams` below.
+
+### url.mergeSearchParams(queryObject)
+
+Merges `queryObject` into the parameters the URL already has, in place, and
+returns the `SafeURL` so calls can be chained. It takes the same input types
+`buildUrl` does and merges them by the same rules, but applies them to a URL you
+are holding rather than to a string you are building, and leaves the result in
+merge order instead of sorting it.
+
+| Argument | Type | Description |
+| --- | --- | --- |
+| `queryObject` | `QueryObject` | Parameters to merge. An object overwrites, entries and `URLSearchParams` append |
+
+```ts
+const url = new SafeURL('/api/search?page=1');
+url.mergeSearchParams({ page: 2, sort: 'asc' });
+url.href; // => "/api/search?page=2&sort=asc"
+```
+
+The path and hash are untouched, and chained merges can mix the input types.
+
+```ts
+const url = new SafeURL('https://example.com/items?color=red#gallery')
+  .mergeSearchParams({ color: 'blue' })
+  .mergeSearchParams([['tag', 'new']]);
+url.href; // => "https://example.com/items?color=blue&tag=new#gallery"
+```
+
+Merging follows the rules under [Merging](#merging), so an object replaces a
+name and an empty array clears it.
+
+```ts
+const url = new SafeURL('/items?color=red');
+url.mergeSearchParams({ color: [] });
+url.href; // => "/items"
+```
+
+`queryObject` is never modified; only the `SafeURL` is. Passing a value that is
+not one of the supported shapes throws a `TypeError`.
+
+### url.setSearchParams(queryObject)
+
+Replaces the parameters the URL has with `queryObject`, in place, and returns
+the `SafeURL` so calls can be chained. It is `mergeSearchParams` with the
+existing query dropped first: whatever was on the URL is discarded, so the
+result holds exactly what you passed.
+
+| Argument | Type | Description |
+| --- | --- | --- |
+| `queryObject` | `QueryObject` | Parameters to set. Anything already on the URL is discarded |
+
+```ts
+const url = new SafeURL('/api/search?page=1&sort=asc');
+url.setSearchParams({ page: 2 });
+url.href; // => "/api/search?page=2"
+```
+
+The merge rules still apply within `queryObject` itself, so entries and
+`URLSearchParams` can still repeat a name — they just have nothing of the URL's
+own to append to.
+
+```ts
+const url = new SafeURL('/items?color=red');
+url.setSearchParams([
+  ['color', 'blue'],
+  ['color', 'green'],
+]);
+url.href; // => "/items?color=blue&color=green"
+```
+
+Passing nothing clears the query. The path and hash are untouched either way.
+
+```ts
+const url = new SafeURL('https://example.com/items?color=red#gallery');
+url.setSearchParams({});
+url.href; // => "https://example.com/items#gallery"
+```
+
+`queryObject` is never modified; only the `SafeURL` is. Passing a value that is
+not one of the supported shapes throws a `TypeError`.
 
 ### Stringifiable
 
@@ -137,15 +227,18 @@ type Stringifiable = string | { toString: () => string };
 
 ## Behavior
 
-Merging, value coercion, and encoding work identically in both functions. Only
-sorting differs.
+Merging, value coercion, and encoding work identically in both functions and in
+`SafeURL#mergeSearchParams` and `SafeURL#setSearchParams`. Only sorting differs,
+along with what each one merges into.
 
 ### Merging
 
 Every input type merges into whatever parameters are already there — the query
-string on the path for `buildUrl`, or the `base` argument for
-`buildSearchParams`. What differs is whether a name is overwritten or appended
-to.
+string on the path for `buildUrl`, the `base` argument for `buildSearchParams`,
+or the query already on the URL for `SafeURL#mergeSearchParams`.
+`SafeURL#setSearchParams` is the exception: it discards the URL's query first,
+so its input merges into nothing. What differs is whether a name is overwritten
+or appended to.
 
 | `queryObject` | Behavior | Reason |
 | --- | --- | --- |
@@ -236,6 +329,19 @@ const params = buildSearchParams({ b: 2, a: 1 });
 params.sort();
 params.toString();
 // => "a=1&b=2"
+```
+
+`SafeURL#mergeSearchParams` and `SafeURL#setSearchParams` leave the order alone
+for the same reason. Sort through the live `searchParams` when you want it
+stable.
+
+```ts
+const url = new SafeURL('/report');
+url.mergeSearchParams({ to: '2026-01-31', from: '2026-01-01' });
+url.search; // => "?to=2026-01-31&from=2026-01-01"
+
+url.searchParams.sort();
+url.search; // => "?from=2026-01-01&to=2026-01-31"
 ```
 
 ### Values and omission
@@ -392,6 +498,24 @@ url.searchParams.append('y', '2');
 url.href; // => "/a?x=1&y=2"
 ```
 
+[`mergeSearchParams`](#urlmergesearchparamsqueryobject) merges a whole
+`queryObject` in one call, taking the same input types `buildUrl` does.
+
+```ts
+const url = new SafeURL('/a?x=1');
+url.mergeSearchParams({ x: 2, y: 3 });
+url.href; // => "/a?x=2&y=3"
+```
+
+[`setSearchParams`](#urlsetsearchparamsqueryobject) takes the same input types
+but replaces the query instead of merging into it.
+
+```ts
+const url = new SafeURL('/a?x=1');
+url.setSearchParams({ y: 3 });
+url.href; // => "/a?y=3"
+```
+
 Assigning a `hostname` or `host` gives a domain-less URL a domain. Assigning an
 empty one takes it away — something `URL` silently refuses to do.
 
@@ -438,10 +562,11 @@ url.protocol; // => "https:"
 url.href; // => "https://example.com/a"
 ```
 
-### It never throws
+### It accepts relative references instead of throwing
 
-Malformed input is salvaged rather than rejected, and round-trips through
-`href` wherever the text allows.
+Where `URL` rejects a reference for having no scheme and authority, `SafeURL`
+parses it. Malformed input is salvaged rather than rejected wherever it can be,
+and round-trips through `href` wherever the text allows.
 
 ```ts
 new SafeURL('http://').href; // => "http://"
@@ -450,10 +575,10 @@ new SafeURL('ws://').href; // => "ws://"
 new SafeURL('http://[').href; // => "http://["
 ```
 
-`SafeURL.canParse` exists for parity with `URL.canParse` and is therefore `true`
-for every string. It returns `false` only for a value that cannot be converted
-to a string at all — an object with a throwing `toString`, or one created with
-`Object.create(null)` — which is the one and only way construction can fail.
+`SafeURL.canParse` exists for parity with `URL.canParse` and is `true` for every
+string. It returns `false` for a value that cannot be converted to a string at
+all — an object with a throwing `toString`, or one created with
+`Object.create(null)`.
 
 ```ts
 SafeURL.canParse('https://example.com'); // => true
