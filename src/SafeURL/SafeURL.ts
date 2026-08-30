@@ -294,7 +294,7 @@ export default class SafeURL implements URL {
    */
   static canParse(inputUrl: Stringifiable, base?: Stringifiable): boolean {
     try {
-      new SafeURL(inputUrl);
+      new SafeURL(inputUrl, base);
       return true;
     } catch {
       // only reachable when stringifying `inputUrl` or `base` throws
