@@ -1,6 +1,6 @@
 # Agent Guide for url-forge
 
-`url-forge` is a lightweight, dependency-free TypeScript library providing a single simple function for constructing URLs by merging query parameters from objects, arrays of entries, or `URLSearchParams`.
+`url-forge` is a lightweight, dependency-free TypeScript library providing functions for constructing URLs.
 
 ## General
 
